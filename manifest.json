@@ -15,15 +15,9 @@
     "512": "icons/bywater-512.ico"
   },
   "background": {
-    "scripts": [
-      "background-script.js"
-    ],
+    "scripts": ["background-script.js"],
     "persistent": false,
     "type": "module"
   },
-  "permissions": [
-    "tabs",
-    "activeTab",
-    "<all_urls>"
-  ]
+  "permissions": ["tabs", "activeTab", "<all_urls>"]
 }
