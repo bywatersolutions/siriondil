@@ -14,16 +14,6 @@
     "256": "icons/bywater-256.ico",
     "512": "icons/bywater-512.ico"
   },
-  "content_scripts": [
-    {
-      "matches": [
-        "*://ticket.bywatersolutions.com/*"
-      ],
-      "js": [
-        "siriondil.js"
-      ]
-    }
-  ],
   "background": {
     "scripts": [
       "background-script.js"
