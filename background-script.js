@@ -15,6 +15,7 @@ function logTabs(allTabs) {
         console.log("logTabs: Tab URL:", tab.url);
         console.log("Tab ID:", tab.id);
     }
+    console.log("logTabs: Done!");
 }
 
 function handleUpdated(tabId, changeInfo, tabInfo) {
@@ -58,64 +59,65 @@ function handleRemoved(tabId, removeInfo) {
     let other_tabs_open = false;
     if (tab) {
         console.log("Found the closed tab", tab);
-        delete tabs[tabId];
 
+        console.log("UPDATING TABS");
         browser.tabs.query({
             url: "*://ticket.bywatersolutions.com/*"
-        }).then(logTabs); // <-- is this blocking? It needs to be.
+        }).then(logTabs).then(function(){
+            console.log("DONE UPDATING TABS, CHECKING FOR MORE TICKET TABS");
+            delete tabs[tabId];
 
-        const url = tab.url;
-        const title = tab.title;
+            const url = tab.url;
+            const title = tab.title;
 
-        console.log("Closed tab url", url);
-        console.log("Closed tab title", title);
+            console.log("Closed tab url", url);
+            console.log("Closed tab title", title);
 
-        const matches = url.match(ticketIdFromDisplayUrlRegex);
-        if (!matches) return;
-        const ticket_id = matches[1];
-        console.log("TICKET ID: ", ticket_id);
+            const matches = url.match(ticketIdFromDisplayUrlRegex);
+            if (!matches) return;
+            const ticket_id = matches[1];
+            console.log("TICKET ID: ", ticket_id);
 
-        console.log("Looking for other tabs for this ticket");
-        for (const [id, t] of Object.entries(tabs)) {
-            //  Find any non timer tabs with matching titles, if there are any, don't submit the timer
-            console.log(id, t);
-            console.log("Tab id", t.id);
-            console.log("Tab url", t.url);
-            console.log("Tab title", t.title);
+            console.log("Looking for other tabs for this ticket");
+            for (const [id, t] of Object.entries(tabs)) {
+                //  Find any non timer tabs with matching titles, if there are any, don't submit the timer
+                console.log(id, t);
+                console.log("Tab id", t.id);
+                console.log("Tab url", t.url);
+                console.log("Tab title", t.title);
 
-            // Check to see if this is another normal tab for that ticket
-            let m = t.url.match(ticketIdFromDisplayUrlRegex);
-            console.log('MATCHES', m);
-            if (m) {
-                let t_id = m[1];
-                console.log("Ticket ID for this tab if Display:", t_id);
-                if (t_id == ticket_id) {
-                    console.log("This tab is a match!");
-                    other_tabs_open = true;
-                    break; // If there is another tab open, we do nothing
+                // Check to see if this is another normal tab for that ticket
+                let m = t.url.match(ticketIdFromDisplayUrlRegex);
+                console.log('MATCHES', m);
+                if (m) {
+                    let t_id = m[1];
+                    console.log("Ticket ID for this tab if Display:", t_id);
+                    if (t_id == ticket_id) {
+                        console.log("This tab is a match!");
+                        other_tabs_open = true;
+                        break; // If there is another tab open, we do nothing
+                    }
+                }
+
+                // Check to see if this is the timer window for that ticket
+                m = t.url.match(ticketIdFromTimerUrlRegex);
+                if (m) {
+                    let t_id = m[1];
+                    console.log("Ticket ID for this tab if Timer", t_id);
+                    if (t_id == ticket_id) {
+                        console.log("This tab is the timer window!");
+                        timer_window = t;
+                    }
                 }
             }
 
-            // Check to see if this is the timer window for that ticket
-            m = t.url.match(ticketIdFromTimerUrlRegex);
-            if (m) {
-                let t_id = m[1];
-                console.log("Ticket ID for this tab if Timer", t_id);
-                if (t_id == ticket_id) {
-                    console.log("This tab is the timer window!");
-                    timer_window = t;
-                }
+            if (timer_window && !other_tabs_open) {
+                console.log("SUBMITTING TIMER!");
+                browser.tabs.executeScript(timer_window.id, {
+                    code: 'document.querySelector("a.submit-time").click();'
+                });
             }
-        }
-
-        if (timer_window && !other_tabs_open) {
-            console.log("SUBMIT THE TIMER!!!!");
-            browser.tabs.executeScript(timer_window.id, {
-                code: 'document.querySelector("a.submit-time").click();'
-            });
-        } else {
-            console.log("KLDFSJSDKLFJDSFKLJSDFLK");
-        }
+        });
     }
 }
 browser.tabs.onRemoved.addListener(handleRemoved);
