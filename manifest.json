@@ -4,15 +4,15 @@
   "version": "0.0.1",
   "description": "Browser enhancements for ByWater Solutions team members",
   "icons": {
-    "16": "icons/bywater-16.ico",
-    "24": "icons/bywater-24.ico",
-    "32": "icons/bywater-32.ico",
-    "48": "icons/bywater-48.ico",
-    "64": "icons/bywater-64.ico",
-    "96": "icons/bywater-96.ico",
-    "128": "icons/bywater-128.ico",
-    "256": "icons/bywater-256.ico",
-    "512": "icons/bywater-512.ico"
+    "16": "icons/bywater-16.png",
+    "24": "icons/bywater-24.png",
+    "32": "icons/bywater-32.png",
+    "48": "icons/bywater-48.png",
+    "64": "icons/bywater-64.png",
+    "96": "icons/bywater-96.png",
+    "128": "icons/bywater-128.png",
+    "256": "icons/bywater-256.png",
+    "512": "icons/bywater-512.png"
   },
   "background": {
     "scripts": ["background-script.js"],
