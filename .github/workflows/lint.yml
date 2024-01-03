@@ -19,4 +19,5 @@ jobs:
           cmd: lint
           source: .
           channel: unlisted
+        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
