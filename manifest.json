@@ -22,7 +22,7 @@
   "permissions": ["tabs", "activeTab", "<all_urls>"],
   "browser_specific_settings": {
     "gecko": {
-      "id": "0292b566-2285-4f7e-8c55-1ea715bc98da"
+      "id": "{0292b566-2285-4f7e-8c55-1ea715bc98da}"
     }
   }
 
