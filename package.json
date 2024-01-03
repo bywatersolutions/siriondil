@@ -1,0 +1,23 @@
+{
+  "name": "siriondil",
+  "version": "1.0.0",
+  "description": "A browser extension for ByWater team members ",
+  "main": "background-script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "tidy": "npx prettier . --write"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bywatersolutions/siriondil.git"
+  },
+  "author": "Kyle M Hall",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/bywatersolutions/siriondil/issues"
+  },
+  "homepage": "https://github.com/bywatersolutions/siriondil#readme",
+  "devDependencies": {
+    "prettier": "3.1.0"
+  }
+}
