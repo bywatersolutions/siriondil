@@ -2,13 +2,10 @@ const ticketIdFromDisplayUrlRegex = /Display\.html\?id=(\d+)/;
 const ticketIdFromTimerUrlRegex = /TicketTimer\?id=(\d+)/;
 const ticketIdFromTitleRegex = /#(\d+):.*/;
 
-let timers = {};
 let tabs = {};
-let all_tabs;
 
 function logTabs(allTabs) {
   console.log("logTabs: Storing all ticket related tabs");
-  all_tabs = allTabs;
   tabs = {};
   for (const tab of allTabs) {
     tabs[tab.id] = tab;
@@ -22,26 +19,23 @@ function handleUpdated(tabId, changeInfo, tabInfo) {
   console.log("Title", tabInfo.title);
   console.log("URL", tabInfo.url);
 
+  const url = tabInfo.url;
+  const matches = url.match(ticketIdFromDisplayUrlRegex);
+  if ( !matches ) return; // Not a ticket tab, nothing to see here
+  const ticket_id = matches[1];
+  if ( !ticket_id ) return; // No ticket id? Nothing we can do then
+  
+  console.log("TICKET: ", ticket_id);
+
+  // Look for a timer window 
   browser.tabs
     .query({
       url: "*://ticket.bywatersolutions.com/*",
+      title: `*Timer for #${ticket_id}*`
     })
-    .then(logTabs)
-    .then(function () {
-      const url = tabInfo.url;
-      if (
-        url.indexOf(
-          "https://ticket.bywatersolutions.com/Ticket/Display.html?id=",
-        ) == 0
-      ) {
-        const matches = url.match(ticketIdFromDisplayUrlRegex);
-        const id = matches[1];
-        console.log("TICKET: ", id);
-
-        if (!timers[id]) {
-          timers[id] = true;
-          console.log("Timers:", timers);
-          const timer_url = `https://ticket.bywatersolutions.com/Helpers/TicketTimer?id=${id}`;
+    .then(function( timerTabs ) {
+        if ( timerTabs.length == 0 ) {
+          const timer_url = `https://ticket.bywatersolutions.com/Helpers/TicketTimer?id=${ticket_id}`;
           console.log("OPEN", timer_url);
           browser.windows.create({
             url: timer_url,
@@ -53,60 +47,53 @@ function handleUpdated(tabId, changeInfo, tabInfo) {
             type: "popup",
           });
         }
-      }
-    });
+    })
+
+  // Store all ticket tabs, needed for when a tab is closed
+  browser.tabs
+    .query({
+      url: "*://ticket.bywatersolutions.com/*",
+      title: "#*" // Ticket page titles are like "#123456: Ticket title"
+    })
+    .then(logTabs)
 }
-browser.tabs.onUpdated.addListener(handleUpdated, {
+const debouncedHandleUpdated = debounce(handleUpdated, 1500);
+browser.tabs.onUpdated.addListener(debouncedHandleUpdated, {
   urls: ["*://ticket.bywatersolutions.com/*"],
 });
 
 function handleRemoved(tabId, removeInfo) {
-  console.log(`Tab: ${tabId} is closing`);
+  console.log(`Tab ${tabId} is closing`);
+
   const tab = tabs[tabId];
+  if ( !tab ) return;
+
+  const url = tab.url;
+  const title = tab.title;
+
+  console.log("Found the closed tab", tab);
+  console.log("Closed tab url", url);
+  console.log("Closed tab title", title);
+
+  const matches = url.match(ticketIdFromDisplayUrlRegex);
+  if (!matches) return;
+  const ticket_id = matches[1];
+  if (!ticket_id) return;
+
+  console.log(`FOUND TICKET FOR CLOSED TAB ${tabId}: ${ticket_id}`);
+
   let timer_window;
   let other_tabs_open = false;
-  if (tab) {
-    console.log("Found the closed tab", tab);
-    console.log("Closed tab url", tab.url);
-    console.log("Closed tab title", tab.title);
 
-    //Is this a timer tab? If so, we need to remove it from the timers hash
-    const matches = tab.url.match(ticketIdFromTimerUrlRegex);
-    console.log(matches);
-    if (matches) {
-      const ticket_id = matches[1];
-      console.log(
-        "This is a timer tab, removing from the timers array. Ticket id:",
-        ticket_id,
-      );
-      timers[ticket_id] = false;
-      console.log("Timers:", timers);
-      return;
-    }
-
-    //Is this a non-timer ticket tab? If so we need to submit the timer if it was the last open tab for the ticket
-    console.log("UPDATING TABS");
-    browser.tabs
-      .query({
-        url: "*://ticket.bywatersolutions.com/*",
-      })
-      .then(logTabs)
-      .then(function () {
-        console.log("DONE UPDATING TABS, CHECKING FOR MORE TICKET TABS");
-        delete tabs[tabId];
-
-        const url = tab.url;
-        const title = tab.title;
-
-        const matches = url.match(ticketIdFromDisplayUrlRegex);
-        if (!matches) return;
-        const ticket_id = matches[1];
-        console.log("TICKET ID: ", ticket_id);
-
-        console.log("Looking for other tabs for this ticket");
-        for (const [id, t] of Object.entries(tabs)) {
-          //  Find any non timer tabs with matching titles, if there are any, don't submit the timer
-          console.log(id, t);
+// Is this a non-timer ticket tab?
+// If so we need to submit the timer if it was the last open tab for the ticket
+console.log("UPDATING TABS");
+browser.tabs
+  .query({
+    url: "*://ticket.bywatersolutions.com/*",
+  })
+  .then(function( ticketTabs ) {
+      for (const t of ticketTabs) {
           console.log("Tab id", t.id);
           console.log("Tab url", t.url);
           console.log("Tab title", t.title);
@@ -134,15 +121,29 @@ function handleRemoved(tabId, removeInfo) {
               timer_window = t;
             }
           }
-        }
+      }
 
-        if (timer_window && !other_tabs_open) {
-          console.log("SUBMITTING TIMER!");
-          browser.tabs.executeScript(timer_window.id, {
-            code: 'document.querySelector("a.submit-time").click();',
-          });
-        }
+    if (timer_window && !other_tabs_open) {
+      console.log("SUBMITTING TIMER!");
+      browser.tabs.executeScript(timer_window.id, {
+        code: 'document.querySelector("a.submit-time").click();',
       });
-  }
+    }
+  });
 }
 browser.tabs.onRemoved.addListener(handleRemoved);
+
+function debounce(func, wait, immediate) {
+    var timeout;
+    return function() {
+        var context = this, args = arguments;
+        var later = function() {
+            timeout = null;
+            if (!immediate) func.apply(context, args);
+        };
+        var callNow = immediate && !timeout;
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+        if (callNow) func.apply(context, args);
+    };
+};
