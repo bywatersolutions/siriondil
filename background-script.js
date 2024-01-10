@@ -5,9 +5,9 @@ const ticketIdFromTitleRegex = /#(\d+):.*/;
 let all_ticket_tabs = {};
 
 function logTabs(tabs) {
-  console.log("***** LOG TABS *****");
+  //console.log("***** LOG TABS *****");
   for (const tab of tabs) {
-    console.log(`Storing ${tab.id} titled: ${tab.title}`);
+    //console.log(`Storing ${tab.id} titled: ${tab.title}`);
     all_ticket_tabs[tab.id] = tab;
   }
 }
@@ -53,12 +53,16 @@ function handleUpdated(tabId, changeInfo, tabInfo) {
     })
     .then(function () {
       // Store all ticket tabs, needed for when a tab is closed
-      browser.tabs
-        .query({
-          url: "*://ticket.bywatersolutions.com/*",
-          title: "#*", // Ticket page titles are like "#123456: Ticket title"
-        })
-        .then(logTabs);
+      // delay for 1 second to make sure the new tab is registered
+      console.log("UPDATE STORED TABS");
+      setTimeout(function () {
+        browser.tabs
+          .query({
+            url: "*://ticket.bywatersolutions.com/*",
+            title: "#*", // Ticket page titles are like "#123456: Ticket title"
+          })
+          .then(logTabs);
+      }, 1000);
     });
 }
 const debouncedHandleUpdated = debounce(handleUpdated, 1000, true);
@@ -71,6 +75,7 @@ function handleRemoved(tabId, removeInfo) {
 
   const tab = all_ticket_tabs[tabId];
   if (!tab) return;
+  delete all_ticket_tabs[tabId];
 
   const url = tab.url;
   const title = tab.title;
@@ -89,53 +94,47 @@ function handleRemoved(tabId, removeInfo) {
   let timer_window;
   let other_tabs_open = false;
 
-  // Is this a non-timer ticket tab?
-  // If so we need to submit the timer if it was the last open tab for the ticket
+  // We need to submit the timer if it was the last open tab for the ticket
   console.log("UPDATING TABS");
   browser.tabs
     .query({
       url: "*://ticket.bywatersolutions.com/*",
-      title: `*Timer for #${ticket_id}*`,
+      title: `#${ticket_id}*`, // Ticket page titles are like "#123456: Ticket title"
     })
     .then(function (ticketTabs) {
-      console.log("TIMERS", ticketTabs);
-      for (const t of ticketTabs) {
-        console.log("Tab id", t.id);
-        console.log("Tab url", t.url);
-        console.log("Tab title", t.title);
+      const otherTabs = ticketTabs.filter(function (tab) {
+        return tab.id != tabId;
+      });
+      other_tabs_open = otherTabs.length != 0;
 
-        // Check to see if this is another normal tab for that ticket
-        let m = t.url.match(ticketIdFromDisplayUrlRegex);
-        console.log("MATCHES", m);
-        if (m) {
-          let t_id = m[1];
-          console.log("Ticket ID for this tab if Display:", t_id);
-          if (t_id == ticket_id) {
-            console.log("This tab is a match!");
-            other_tabs_open = true;
-            break; // If there is another tab open, we do nothing
-          }
-        }
+      console.log("OTHER TABS OPEN", other_tabs_open);
 
-        // Check to see if this is the timer window for that ticket
-        m = t.url.match(ticketIdFromTimerUrlRegex);
-        if (m) {
-          let t_id = m[1];
-          console.log("Ticket ID for this tab if Timer", t_id);
-          if (t_id == ticket_id) {
-            console.log("This tab is the timer window!");
-            timer_window = t;
-          }
-        }
-      }
-
-      if (timer_window && !other_tabs_open) {
-        console.log("SUBMITTING TIMER!");
-        browser.tabs.executeScript(timer_window.id, {
-          code: 'document.querySelector("a.submit-time").click();',
-        });
+      if (!other_tabs_open) {
+        browser.tabs
+          .query({
+            url: "*://ticket.bywatersolutions.com/*",
+            title: `*Timer for #${ticket_id}*`,
+          })
+          .then(function (timerTabs) {
+            if (timerTabs.length) {
+              const timer_window = timerTabs[0];
+              console.log("SUBMITTING TIMER!");
+              browser.tabs.executeScript(timer_window.id, {
+                code: 'document.querySelector("a.submit-time").click();',
+              });
+            }
+          });
       }
     });
+
+  setTimeout(function () {
+    browser.tabs
+      .query({
+        url: "*://ticket.bywatersolutions.com/*",
+        title: "#*", // Ticket page titles are like "#123456: Ticket title"
+      })
+      .then(logTabs);
+  }, 1000);
 }
 browser.tabs.onRemoved.addListener(handleRemoved);
 
