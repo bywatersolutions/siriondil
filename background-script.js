@@ -36,20 +36,22 @@ function handleUpdated(tabId, changeInfo, tabInfo) {
       if (timerTabs.length == 0) {
         const timer_url = `https://ticket.bywatersolutions.com/Helpers/TicketTimer?id=${ticket_id}`;
         console.log("OPEN", timer_url);
-        browser.windows.create({
-          url: timer_url,
-          focused: false,
-          height: 300,
-          width: 200,
-          top: 0,
-          left: 0,
-          type: "popup",
-        }).then(function(tabInfo) { 
+        browser.windows
+          .create({
+            url: timer_url,
+            focused: false,
+            height: 300,
+            width: 200,
+            top: 0,
+            left: 0,
+            type: "popup",
+          })
+          .then(function (tabInfo) {
             all_ticket_tabs[tabInfo.id] = tabInfo;
-        });
+          });
       }
     })
-    .then(function() {
+    .then(function () {
       // Store all ticket tabs, needed for when a tab is closed
       browser.tabs
         .query({
