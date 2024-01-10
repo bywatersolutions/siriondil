@@ -2,17 +2,14 @@ const ticketIdFromDisplayUrlRegex = /Display\.html\?id=(\d+)/;
 const ticketIdFromTimerUrlRegex = /TicketTimer\?id=(\d+)/;
 const ticketIdFromTitleRegex = /#(\d+):.*/;
 
-let tabs = {};
+let all_ticket_tabs = {};
 
-function logTabs(allTabs) {
-  console.log("logTabs: Storing all ticket related tabs");
-  tabs = {};
-  for (const tab of allTabs) {
-    tabs[tab.id] = tab;
-    console.log("logTabs: Tab URL:", tab.url);
-    console.log("Tab ID:", tab.id);
+function logTabs(tabs) {
+  console.log("***** LOG TABS *****");
+  for (const tab of tabs) {
+    console.log(`Storing ${tab.id} titled: ${tab.title}`);
+    all_ticket_tabs[tab.id] = tab;
   }
-  console.log("logTabs: Done!");
 }
 
 function handleUpdated(tabId, changeInfo, tabInfo) {
@@ -24,6 +21,8 @@ function handleUpdated(tabId, changeInfo, tabInfo) {
   if (!matches) return; // Not a ticket tab, nothing to see here
   const ticket_id = matches[1];
   if (!ticket_id) return; // No ticket id? Nothing we can do then
+
+  all_ticket_tabs[tabId] = tabInfo;
 
   console.log("TICKET: ", ticket_id);
 
@@ -45,17 +44,20 @@ function handleUpdated(tabId, changeInfo, tabInfo) {
           top: 0,
           left: 0,
           type: "popup",
+        }).then(function(tabInfo) { 
+            all_ticket_tabs[tabInfo.id] = tabInfo;
         });
       }
-    });
-
-  // Store all ticket tabs, needed for when a tab is closed
-  browser.tabs
-    .query({
-      url: "*://ticket.bywatersolutions.com/*",
-      title: "#*", // Ticket page titles are like "#123456: Ticket title"
     })
-    .then(logTabs);
+    .then(function() {
+      // Store all ticket tabs, needed for when a tab is closed
+      browser.tabs
+        .query({
+          url: "*://ticket.bywatersolutions.com/*",
+          title: "#*", // Ticket page titles are like "#123456: Ticket title"
+        })
+        .then(logTabs);
+    });
 }
 const debouncedHandleUpdated = debounce(handleUpdated, 1000, true);
 browser.tabs.onUpdated.addListener(debouncedHandleUpdated, {
@@ -65,7 +67,7 @@ browser.tabs.onUpdated.addListener(debouncedHandleUpdated, {
 function handleRemoved(tabId, removeInfo) {
   console.log(`Tab ${tabId} is closing`);
 
-  const tab = tabs[tabId];
+  const tab = all_ticket_tabs[tabId];
   if (!tab) return;
 
   const url = tab.url;
@@ -91,8 +93,10 @@ function handleRemoved(tabId, removeInfo) {
   browser.tabs
     .query({
       url: "*://ticket.bywatersolutions.com/*",
+      title: `*Timer for #${ticket_id}*`,
     })
     .then(function (ticketTabs) {
+      console.log("TIMERS", ticketTabs);
       for (const t of ticketTabs) {
         console.log("Tab id", t.id);
         console.log("Tab url", t.url);
