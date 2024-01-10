@@ -2,7 +2,7 @@ name: "Release"
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
 
 jobs:
   sign:
@@ -17,7 +17,7 @@ jobs:
         uses: kewisch/action-web-ext@v1
         with:
           cmd: build
-          source: . 
+          source: .
 
       - name: "web-ext sign"
         id: web-ext-sign
