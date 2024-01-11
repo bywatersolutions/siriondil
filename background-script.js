@@ -110,20 +110,22 @@ function handleRemoved(tabId, removeInfo) {
       console.log("OTHER TABS OPEN", other_tabs_open);
 
       if (!other_tabs_open) {
-        browser.tabs
-          .query({
-            url: "*://ticket.bywatersolutions.com/*",
-            title: `*Timer for #${ticket_id}*`,
-          })
-          .then(function (timerTabs) {
-            if (timerTabs.length) {
-              const timer_window = timerTabs[0];
-              console.log("SUBMITTING TIMER!");
-              browser.tabs.executeScript(timer_window.id, {
-                code: 'document.querySelector("a.submit-time").click();',
-              });
-            }
-          });
+        setTimeout(function () {
+          browser.tabs
+            .query({
+              url: "*://ticket.bywatersolutions.com/*",
+              title: `*Timer for #${ticket_id}*`,
+            })
+            .then(function (timerTabs) {
+              if (timerTabs.length) {
+                const timer_window = timerTabs[0];
+                console.log("SUBMITTING TIMER!");
+                browser.tabs.executeScript(timer_window.id, {
+                  code: 'document.querySelector("a.submit-time").click();',
+                });
+              }
+            });
+        }, 1000);
       }
     });
 
