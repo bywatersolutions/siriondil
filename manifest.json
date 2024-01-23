@@ -16,7 +16,7 @@
   },
   "background": {
     "scripts": ["background-script.js"],
-    "persistent": false,
+    "persistent": true,
     "type": "module"
   },
   "permissions": ["tabs", "activeTab", "<all_urls>"],
