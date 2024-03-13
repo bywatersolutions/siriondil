@@ -1,6 +1,6 @@
 {
   "name": "siriondil",
-  "version": "0.0.2",
+  "version": "1.2.0",
   "description": "A browser extension for ByWater team members ",
   "main": "background-script.js",
   "scripts": {
