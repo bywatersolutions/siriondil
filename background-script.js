@@ -41,7 +41,7 @@ function handleUpdated(tabId, changeInfo, tabInfo) {
             url: timer_url,
             focused: false,
             height: 300,
-            width: 200,
+            width: 300,
             top: 0,
             left: 0,
             type: "popup",
